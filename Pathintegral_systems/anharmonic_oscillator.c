@@ -5,8 +5,9 @@
 #define nlatt 5
 
 /*
-SIMULAZIONE OSCILLATORE ANARMONICO QUANTISTICO 
+Markov chain Montecarlo simulation for anharmonic oscillator with lagrangian
 L = 1/2m(dx/dt)^2 - 1/2m*omega^2(x^2) - lambda(x)^4
+using metropolis algorithm
 */
 
 int npp[nlatt], nmm[nlatt];
@@ -23,10 +24,10 @@ int main(){
 	srand(time(NULL));
 	int iflag = 1;
 	int nstat = 131072;
-	int nterm = 1000;//termalizzazione
+	int nterm = 1000;
 	int idecorrel = nlatt;
-	double eta = 0.02;//eta = a*omega
-	double alpha = 0.5;//alpha = hbar*lambda/m^2*omega^3
+	double eta = 0.02;
+	double alpha = 0.5;//alpha = hbar*lambda/m^2*omega^3, adimensional parameter for the simulation
 	double d_metro = 2*sqrt(eta);
 	
 	
@@ -36,14 +37,14 @@ int main(){
 	double obs3;
 	double obsk1;
 	double obsk2;
+	double k = 2;
 	
-	FILE *fp_dati;
-	fp_dati=fopen("T10alpha05.txt","w");
+	FILE *fp_data;
+	fp_data=fopen("data.txt","w");
 
 	geometry();
 	initialize_lattice(iflag);
 
-    
 	for(int i_term = 1; i_term <= nterm; i_term++){
 			update_metropolis(eta,alpha,d_metro);
 	}
@@ -55,14 +56,13 @@ int main(){
 			update_metropolis(eta,alpha,d_metro);
 		}
 
-		measures(eta,alpha,&obs0,&obs1,&obs2,&obs3,&obsk1,&obsk2,0);
-		fprintf(fp_dati,"%lf\t%lf\t%lf\n",obs1,obs2,obs3);
+		measures(eta,alpha,&obs0,&obs1,&obs2,&obs3,&obsk1,&obsk2,k);
+		fprintf(fp_data,"%lf\t%lf\t%lf\n",obs1,obs2,obs3);
 	}
 
 	
-	fclose(fp_dati);
+	fclose(fp_data);
 
-	
 	return 0;
 }
 
@@ -121,7 +121,10 @@ void initialize_lattice(int iflag){
 
 
 void update_metropolis(double eta,double alpha, double d_metro){
-
+	/*
+	the only change is basically in the metropolis step, changing the energy funtion changes the probability distribution given from the
+	pathintegral ence this step
+	*/
 	extern double field[nlatt];
     extern int npp[nlatt];
     extern int nmm[nlatt];
@@ -141,16 +144,16 @@ void update_metropolis(double eta,double alpha, double d_metro){
 		
 		x = rand()/(RAND_MAX+1.0);
 		
-		double phi_prova = phi + 2.0*d_metro*(0.5-x);
+		double phi_try = phi + 2.0*d_metro*(0.5-x);
 		
-		double p_rat = c1*phi_prova*force-c2*pow(phi_prova,2);
+		double p_rat = c1*phi_try*force-c2*pow(phi_try,2);
 		p_rat = p_rat - c1*phi*force+c2*pow(phi,2);
-		p_rat = p_rat - c3*(pow(phi_prova,4)-pow(phi,4));//per la parte quartica basta qusta riga
+		p_rat = p_rat - c3*(pow(phi_try,4)-pow(phi,4));//per la parte quartica basta qusta riga
 		
 		double y = log(rand()/(RAND_MAX+1.0));
 		
 		if(y<p_rat){
-			field[i] = phi_prova;
+			field[i] = phi_try;
 		}
 	}
 	return;
@@ -159,11 +162,14 @@ void update_metropolis(double eta,double alpha, double d_metro){
 
 void measures(double eta,double alpha,double *obs0,double *obs1,double *obs2,double *obs3,double *obsk1,double *obsk2,int k){
 
-/*obsk1 è il correlatore a 2 punti <X_i X_i+k>
-obsk2 è il correlatore a due punti con le grandezze al quadrato <(X_i**2 X_i+k**2>
-per i correlatori connessi va sottratto a obsk1 e obsk2 rispettivamente 
-<x>**2, nullo se l' energia è pari e <x**2>**2, <x**2> si calcola già con obs1,
-quindi resta solo da ELEVARALA AL QUADRATO DOPO AVER FATTO LA MEDIA*/
+/*
+obs0 = <x>
+obs1 = <x**2>
+obs2 = <x_i*x_{i-1}> correlator, i is not important given the pbc ence discrete translation invariance
+obs3 = <x**4>
+obsk1 = <x_i*x{i+k}>
+obsk2 = <[(x_i)**2]*[(x_{i+k})**2]>, the correlator with squared inputs
+*/
 	
 	extern double field[nlatt];
     extern int npp[nlatt];
