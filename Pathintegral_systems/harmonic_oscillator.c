@@ -58,6 +58,8 @@ int main(){
 		fprintf(fp_data,"%lf\t%lf\t%lf\t%lf\t%lf\n",obs0,obs1,obs2,obsk1,obsk2);
 	}
 	
+	fclose(fp_data);
+	
 	return 0;
 }
 
@@ -137,15 +139,15 @@ void update_metropolis(double eta, double d_metro){
 		
 		x = rand()/(RAND_MAX+1.0);
 		
-		double phi_prova = phi + 2.0*d_metro*(0.5-x);
+		double phi_try = phi + 2.0*d_metro*(0.5-x);
 		
-		double p_rat = c1*phi_prova*force-c2*pow(phi_prova,2);
+		double p_rat = c1*phi_try*force-c2*pow(phi_try,2);
 		p_rat = p_rat - c1*phi*force+c2*pow(phi,2);
 		
 		double y = log(rand()/(RAND_MAX+1.0));
 		
 		if(y<p_rat){
-			field[i] = phi_prova;
+			field[i] = phi_try;
 		}
 	}
 	return;
