@@ -2,94 +2,55 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#define n_meas 131072
+#define n_meas 131072//to be a power of 2
 
 /*
-dato array di dati a[n_meas], n_meas numero di dati, restituisce la varianza calcolata 
-con algoritmo bootstrap s2k con binning di blocco 2**k
-*/ 
+Given a[n_meas] array of n_meas size, it returns the VARIANCE with bootstrap algorithm
 
-/*se il file da analizzare contiene più colonne e si è interessati solo
-ad alcune, il placeholder %*type ignora l' elemento di tipo 'type'*/
+For correlated data it returns the 'binned' variation of the algo with 2**k size of the bin
+*/
 
 double bootbin(double a[], int k);
 
 int main(){
 	
-	double a[n_meas];
+	/*
+	Here it is assumed one has a .txt file with float data arranged by columns called data.txt, if one has a file with multiple columns use the %*type 
+	placeholder in order to ignore some columns
+	
+	At the end it saves the STANDARD DEVIATION in a separate file error.txt
+	
+	It is assumed the data.txt file has a power of 2 of datapoints in order to be divided in bins
+	*/
+	
 	double stddev;
-	int nlatt = 40;
+	FILE *fp_data;
+	FILE *fp_errors;
+	double k = 10; //2**k bin_size
 	
-	FILE *fp_err_N40;
+	fp_data = fopen("data.txt", "r");
+	fp_error = fopen("error.txt","w");
 	
-	FILE *fp_dati_corr[nlatt];
-    
-	fp_dati_corr[0] = fopen("corrk0n40.txt","r");
-	fp_dati_corr[1] = fopen("corrk1n40.txt","r");
-	fp_dati_corr[2] = fopen("corrk2n40.txt","r");
-	fp_dati_corr[3] = fopen("corrk3n40.txt","r");
-	fp_dati_corr[4] = fopen("corrk4n40.txt","r");
-	fp_dati_corr[5] = fopen("corrk5n40.txt","r");
-	fp_dati_corr[6] = fopen("corrk6n40.txt","r");
-	fp_dati_corr[7] = fopen("corrk7n40.txt","r");
-	fp_dati_corr[8] = fopen("corrk8n40.txt","r");
-	fp_dati_corr[9] = fopen("corrk9n40.txt","r");
-	fp_dati_corr[10] = fopen("corrk10n40.txt","r");
-	fp_dati_corr[11] = fopen("corrk11n40.txt","r");
-	fp_dati_corr[12] = fopen("corrk12n40.txt","r");
-	fp_dati_corr[13] = fopen("corrk13n40.txt","r");
-	fp_dati_corr[14] = fopen("corrk14n40.txt","r");
-	fp_dati_corr[15] = fopen("corrk15n40.txt","r");
-	fp_dati_corr[16] = fopen("corrk16n40.txt","r");
-	fp_dati_corr[17] = fopen("corrk17n40.txt","r");
-	fp_dati_corr[18] = fopen("corrk18n40.txt","r");
-	fp_dati_corr[19] = fopen("corrk19n40.txt","r");
-	fp_dati_corr[20] = fopen("corrk20n40.txt","r");
-	fp_dati_corr[21] = fopen("corrk21n40.txt","r");
-	fp_dati_corr[22] = fopen("corrk22n40.txt","r");
-	fp_dati_corr[23] = fopen("corrk23n40.txt","r");
-	fp_dati_corr[24] = fopen("corrk24n40.txt","r");
-	fp_dati_corr[25] = fopen("corrk25n40.txt","r");
-	fp_dati_corr[26] = fopen("corrk26n40.txt","r");
-	fp_dati_corr[27] = fopen("corrk27n40.txt","r");
-	fp_dati_corr[28] = fopen("corrk28n40.txt","r");
-	fp_dati_corr[29] = fopen("corrk29n40.txt","r");
-	fp_dati_corr[30] = fopen("corrk30n40.txt","r");
-	fp_dati_corr[31] = fopen("corrk31n40.txt","r");
-	fp_dati_corr[32] = fopen("corrk32n40.txt","r");
-	fp_dati_corr[33] = fopen("corrk33n40.txt","r");
-	fp_dati_corr[34] = fopen("corrk34n40.txt","r");
-	fp_dati_corr[35] = fopen("corrk35n40.txt","r");
-	fp_dati_corr[36] = fopen("corrk36n40.txt","r");
-	fp_dati_corr[37] = fopen("corrk37n40.txt","r");
-	fp_dati_corr[38] = fopen("corrk38n40.txt","r");
-	fp_dati_corr[39] = fopen("corrk39n40.txt","r");
 	
-	fp_err_N40 = fopen("err_N40.txt","w");
-	
-	for(int i=0;i<nlatt;i++){
-	
-		for(int j=0;j<n_meas;j++){
-			fscanf(fp_dati_corr[i],"%*d%lf%*d%*f%*f",&a[j]);
-		}
-		stddev = sqrt(bootbin(a,10));
-		fprintf(fp_err_N40,"%f\n",stddev);
+	for(int i=0;i<n_meas;i++){
+		fscanf(fp_data,"%f",&a[i]);
 	}
-
+	
+	stddev = sqrt(bootbin(a,k))
+	fprintf(fp_error,"%f\n",stddev)
 
 	return 0;
 
 }
 
-/*funzione per bootstrap con binning, restituisce la varianza s2k dei
-dati con bin 2**k*/
-//a[] array di dati da elaborare
-//k potenza dimensione blocco, dim = 2**k
+/*
+It returns the variance with a 2**k binnig
+*/
 double bootbin(double a[], int k){
 	
-	int m = 100;//m numero ricampionamenti, in genere 50/100 bastano
-	double b[n_meas];//conterrà il set di dati ricampionato
-	double f[m];//conterrà i risultati di ogni ricampionamento
+	int m = 100;//number of resampling, usually 50/100 are enough
+	double b[n_meas];//it will contain the resampled data
+	double f[m];//it will contain the observables one has to calculate the variance of
 	
 	for(int l=0;l<m;l++){
 	
@@ -105,7 +66,16 @@ double bootbin(double a[], int k){
 				b[i+j] = a[x+j];
 			}
 		}
-
+		
+		/*
+		Here it is assumed one as a series of n_meas x_i datapoints and one has to calculate the variance of the observable <x> = mean(x_i)
+		
+		For more complicated observables like the binder cumulant <x**4>/3<x**2>**2 one as to modify this point in order that f[l] contains the
+		observable calculated for each resampling, 
+		
+		e.g. in the binder cumulant casa one needs two arrays b1[], b2[] during the resampling, one to store 
+		the x**4 values and the other for the x**2, than you take the mean of the two and feed f[l] mean(b1)/3mean(b2) for each l = 1...m resampling 
+		*/
 		double mean = 0.0;
 		for(int i=0;i<n_meas;i++){
 			mean += b[i];
@@ -125,14 +95,7 @@ double bootbin(double a[], int k){
 	dum1 = dum1/(double)n_meas;
 	dum2 = pow(dum2/(double)n_meas,2);
 	
-	double s2k = dum1-dum2;//varianza
+	double s2k = dum1-dum2;//variance formula
 	
 	return s2k;
 }
-
-
-
-
-
-
-
