@@ -1,6 +1,6 @@
 # Numerical_mehods
 
-This repo contains little projects concerning Montecarlo simulations of physical system from the statistical point of view
+This repo contains little projects concerning Montecarlo simulations of physical system from the statistical point of view and some sparse example/utility programs
 
 ## Ising model
 
