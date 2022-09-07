@@ -2,22 +2,31 @@
 #include<stdlib.h>
 #include<math.h>
 #include<time.h>
-#define nlatt 40
-#define nvol 1600
+#define nlatt 40//side lenth of the square lattice
+#define nvol 1600//nlatt*nlatt
+
+/*
+Markov chain Montecarlo simulation for the 2d square lattice ising model
+*/
 
 double field[nlatt][nlatt];
 int npp[nlatt], nmm[nlatt];
 
 void initialize_lattice(int iflag);
 void update_metropolis(double beta, double extfield);
-void geometry();
+void geometry();//instantiate the 'step arrays' that encode the pbc
 void measures(double extfield, double *mag, double *mag2, double *mag4, double *ene, double *ene2);
 
 
 int main(void){
 	
-	int numbeta = 56;//numero di valori di beta diversi
+	int numbeta = 56;
     srand(time(NULL));
+	/*
+	In order to plot the phase transition here we make a file for different thermodinamic beta values (beta ~ 1/temperature),
+	later one can extract the various observables (energy, magnetization etc.) and plot some graphs to show the behaviour at
+	different temperratures
+	*/
     double beta[] = {0.360,0.370,0.380,0.385,0.390,0.395,0.400,
     				0.4025,0.405,0.4075,0.410,0.4125,0.4150,0.4175,0.420,
     				0.4225,0.4250,0.4275,0.430,0.4325,0.4350,0.4360,0.4375,
@@ -30,73 +39,79 @@ int main(void){
 
     double mag,mag2,mag4,ene,ene2;
 
-    int iflag = 1;
-    int nstat = 100000;
-    int i_decorrel = 100;
+    int iflag = 1;//for the starting lattice, random or with all sites fixed to a point ('warm' or 'cold' initialization)
+    int nstat = 100000;//datapoints to be measured
+	int nterm = 1000;//measures to be discarded in order to let the markov chain thermalize
+    int i_decorrel = 100;//lattice updates between 2 measures in order to decorrelate the data, idelly one should at least update the whole lattice
+						//here due to the very time comsuming execution of the program the decorrelation is only on 100 sites
 
-    FILE *fp_dati[numbeta];
-    fp_dati[0] = fopen("ising_360L40.txt","w");
-    fp_dati[1] = fopen("ising_370L40.txt","w");
-    fp_dati[2] = fopen("ising_380L40.txt","w");
-    fp_dati[3] = fopen("ising_385L40.txt","w");
-    fp_dati[4] = fopen("ising_390L40.txt","w");
-	fp_dati[5] = fopen("ising_395L40.txt","w");
-	fp_dati[6] = fopen("ising_400L40.txt","w");
-	fp_dati[7] = fopen("ising_4025L40.txt","w");
-	fp_dati[8] = fopen("ising_405L40.txt","w");
-	fp_dati[9] = fopen("ising_4075L40.txt","w");
-	fp_dati[10] = fopen("ising_410L40.txt","w");
-	fp_dati[11] = fopen("ising_4125L40.txt","w");
-	fp_dati[12] = fopen("ising_4150L40.txt","w");
-	fp_dati[13] = fopen("ising_4175L40.txt","w");
-	fp_dati[14] = fopen("ising_420L40.txt","w");
-	fp_dati[15] = fopen("ising_4225L40.txt","w");
-	fp_dati[16] = fopen("ising_4250L40.txt","w");
-	fp_dati[17] = fopen("ising_4275L40.txt","w");
-	fp_dati[18] = fopen("ising_430L40.txt","w");
-	fp_dati[19] = fopen("ising_4325L40.txt","w");
-	fp_dati[20] = fopen("ising_4350L40.txt","w");
-	fp_dati[21] = fopen("ising_4360L40.txt","w");
-	fp_dati[22] = fopen("ising_4375L40.txt","w");
-	fp_dati[23] = fopen("ising_4380L40.txt","w");
-	fp_dati[24] = fopen("ising_4390L40.txt","w");
-	fp_dati[25] = fopen("ising_4395L40.txt","w");
-	fp_dati[26] = fopen("ising_4398L40.txt","w");
-	fp_dati[27] = fopen("ising_4399L40.txt","w");
-	fp_dati[28] = fopen("ising_440L40.txt","w");
-	fp_dati[29] = fopen("ising_4401L40.txt","w");
-	fp_dati[30] = fopen("ising_4402L40.txt","w");
-	fp_dati[31] = fopen("ising_4403L40.txt","w");
-	fp_dati[32] = fopen("ising_4406L40.txt","w");
-	fp_dati[33] = fopen("ising_4409L40.txt","w");
-	fp_dati[34] = fopen("ising_4412L40.txt","w");
-	fp_dati[35] = fopen("ising_4425L40.txt","w");
-	fp_dati[36] = fopen("ising_4437L40.txt","w");
-	fp_dati[37] = fopen("ising_4450L40.txt","w");
-	fp_dati[38] = fopen("ising_4462L40.txt","w");
-	fp_dati[39] = fopen("ising_4475L40.txt","w");
-	fp_dati[40] = fopen("ising_4487L40.txt","w");
-	fp_dati[41] = fopen("ising_450L40.txt","w");
-	fp_dati[42] = fopen("ising_4525L40.txt","w");
-	fp_dati[43] = fopen("ising_4550L40.txt","w");
-	fp_dati[44] = fopen("ising_4575L40.txt","w");
-	fp_dati[45] = fopen("ising_460L40.txt","w");
-	fp_dati[46] = fopen("ising_4625L40.txt","w");
-	fp_dati[47] = fopen("ising_4650L40.txt","w");
-	fp_dati[48] = fopen("ising_4675L40.txt","w");
-	fp_dati[49] = fopen("ising_470L40.txt","w");
-	fp_dati[50] = fopen("ising_475L40.txt","w");
-	fp_dati[51] = fopen("ising_480L40.txt","w");
-	fp_dati[52] = fopen("ising_485L40.txt","w");
-	fp_dati[53] = fopen("ising_490L40.txt","w");
-	fp_dati[54] = fopen("ising_500L40.txt","w");
-	fp_dati[55] = fopen("ising_510L40.txt","w");
+    FILE *fp_data[numbeta];
+    data[0] = fopen("ising_360L40.txt","w");
+    data[1] = fopen("ising_370L40.txt","w");
+    data[2] = fopen("ising_380L40.txt","w");
+    data[3] = fopen("ising_385L40.txt","w");
+    data[4] = fopen("ising_390L40.txt","w");
+	data[5] = fopen("ising_395L40.txt","w");
+	data[6] = fopen("ising_400L40.txt","w");
+	data[7] = fopen("ising_4025L40.txt","w");
+	data[8] = fopen("ising_405L40.txt","w");
+	data[9] = fopen("ising_4075L40.txt","w");
+	data[10] = fopen("ising_410L40.txt","w");
+	data[11] = fopen("ising_4125L40.txt","w");
+	data[12] = fopen("ising_4150L40.txt","w");
+	data[13] = fopen("ising_4175L40.txt","w");
+	data[14] = fopen("ising_420L40.txt","w");
+	data[15] = fopen("ising_4225L40.txt","w");
+	data[16] = fopen("ising_4250L40.txt","w");
+	data[17] = fopen("ising_4275L40.txt","w");
+	data[18] = fopen("ising_430L40.txt","w");
+	data[19] = fopen("ising_4325L40.txt","w");
+	data[20] = fopen("ising_4350L40.txt","w");
+	data[21] = fopen("ising_4360L40.txt","w");
+	data[22] = fopen("ising_4375L40.txt","w");
+	data[23] = fopen("ising_4380L40.txt","w");
+	data[24] = fopen("ising_4390L40.txt","w");
+	data[25] = fopen("ising_4395L40.txt","w");
+	data[26] = fopen("ising_4398L40.txt","w");
+	data[27] = fopen("ising_4399L40.txt","w");
+	data[28] = fopen("ising_440L40.txt","w");
+	data[29] = fopen("ising_4401L40.txt","w");
+	data[30] = fopen("ising_4402L40.txt","w");
+	data[31] = fopen("ising_4403L40.txt","w");
+	data[32] = fopen("ising_4406L40.txt","w");
+	data[33] = fopen("ising_4409L40.txt","w");
+	data[34] = fopen("ising_4412L40.txt","w");
+	data[35] = fopen("ising_4425L40.txt","w");
+	data[36] = fopen("ising_4437L40.txt","w");
+	data[37] = fopen("ising_4450L40.txt","w");
+	data[38] = fopen("ising_4462L40.txt","w");
+	data[39] = fopen("ising_4475L40.txt","w");
+	data[40] = fopen("ising_4487L40.txt","w");
+	data[41] = fopen("ising_450L40.txt","w");
+	data[42] = fopen("ising_4525L40.txt","w");
+	data[43] = fopen("ising_4550L40.txt","w");
+	data[44] = fopen("ising_4575L40.txt","w");
+	data[45] = fopen("ising_460L40.txt","w");
+	data[46] = fopen("ising_4625L40.txt","w");
+	data[47] = fopen("ising_4650L40.txt","w");
+	data[48] = fopen("ising_4675L40.txt","w");
+	data[49] = fopen("ising_470L40.txt","w");
+	data[50] = fopen("ising_475L40.txt","w");
+	data[51] = fopen("ising_480L40.txt","w");
+	data[52] = fopen("ising_485L40.txt","w");
+	data[53] = fopen("ising_490L40.txt","w");
+	data[54] = fopen("ising_500L40.txt","w");
+	data[55] = fopen("ising_510L40.txt","w");
 	
     geometry();
     initialize_lattice(iflag);
+	
+	//thermalization    
+	for(int i_term = 1; i_term <= nterm; i_term++){
+			update_metropolis(eta,d_metro);
+	}
 
     for(int b=0;b<numbeta;b++){
-    
     
     	for(int iter=1;iter<=nstat;iter++){
     	
@@ -105,7 +120,7 @@ int main(void){
         	}
 
         	measures(extfield,&mag,&mag2,&mag4,&ene,&ene2);
-        	fprintf(fp_dati[b],"%d\t%lf\t%lf\t%lf\t%lf\t%lf\n",iter,mag,mag2,mag4,ene,ene2);
+        	fprintf(fp_data[b],"%d\t%lf\t%lf\t%lf\t%lf\t%lf\n",iter,mag,mag2,mag4,ene,ene2);
     	}
     }
 	
@@ -123,7 +138,8 @@ void initialize_lattice(int iflag){
     extern double lattice[nlatt][nlatt];
 
     switch(iflag){
-        
+    //case 1 is 'warm' start with random values given to the sites
+	//case 2 is 'cold' start with sites initially frozen in the arbitrary value of 1.0
         case 1:{
             for(int i=0;i<nlatt;i++){
                 for(int j=0;j<nlatt;j++){
@@ -165,7 +181,7 @@ void geometry(){
         npp[i] = i+1;
         nmm[i] = i-1;
     }
-
+	//pbc
     npp[nlatt-1] = 0;
     nmm[0] = nlatt-1;
 
@@ -199,7 +215,7 @@ void measures(double extfield, double *mag, double *mag2, double *mag4, double *
     }
 
     *mag = *mag/((double) nvol);
-    //nel reticolo finito si usa |M| come parametro d' ordine, M è sempre circa 0
+    //in a finite size lattice one uses |M|, the absolute value of the magnetization as order parameter
     if (*mag<0.){
     	*mag = -*mag;
     }
@@ -211,6 +227,7 @@ void measures(double extfield, double *mag, double *mag2, double *mag4, double *
     return;
 }
 
+//single metropolis step
 void update_metropolis(double beta, double extfield){
 
     extern double lattice[nlatt][nlatt];
