@@ -2,6 +2,8 @@
 
 This repo contains little projects concerning Montecarlo simulations of physical system from the statistical point of view and some sparse example/utility programs like bootstrap.c for calculating errors in datapoint with bootstrap algorithm
 
+All the simulations are done in C language implementing a Markov chain Montecarlo algorithm, in particular the Metropolis version
+
 ## Ising model
 
 Simulations of the thormofdinamical properties of a 2D ising model with square lattice
