@@ -87,7 +87,7 @@ void initialize_lattice(int iflag){
 	extern double field[nlatt];
 	
 	//case 1 is 'warm' start with random values given to the sites
-	//case 2 is 'cold' start with sites initialli frozen in the arbitrary value of 10.0
+	//case 2 is 'cold' start with sites initially frozen in the arbitrary value of 10.0
 	switch(iflag){
 	
 		case 1:{
