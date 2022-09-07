@@ -2,62 +2,61 @@
 #include<stdlib.h>
 #include<math.h>
 #include<time.h>
-#define nlatt 100
+#define nlatt 100//lenght of the lattice
 
 /*
-SIMULAZIONE OSCILLATORE ARMONICO QUANTISTICO 
+Markov chain Montecarlo simulation for harmonic oscillator with lagrangian
 L = 1/2m(dx/dt)^2 - 1/2m*omega^2(x^2)
+using metropolis algorithm
 */
 
 int npp[nlatt], nmm[nlatt];
 double field[nlatt];
 
-void geometry();
+void geometry();//instantiate the 'step arrays' that encode the pbc
 void initialize_lattice(int iflag);
-void update_metropolis(double eta, double d_metro);
-void measures(double *obs0, double *obs1, double *obs2, double *obsk1, double *obsk2, int k);
+void update_metropolis(double eta, double d_metro);//single metropolis step
+void measures(double *obs0, double *obs1, double *obs2, double *obsk1, double *obsk2, int k);//returns observables to be measured
 
 
 int main(){
 	
 	srand(time(NULL));
-	int iflag = 1;
-	int nstat = 1000000;
-	int nterm = 1000;//termalizzazione
-	int idecorrel = nlatt;
+	int iflag = 1;//for the starting lattice, random or with all sites fixed to a point ('warm' or 'cold' initialization)
+	int nstat = 1000000;//datapoints to be measured
+	int nterm = 1000;//measures to be discarded in order to let the markov chain thermalize
+	int idecorrel = nlatt;//lattice updates between 2 measures in order to decorrelate the data, one should at least update the whole lattice
 	double eta = 0.2;
-	double d_metro = 2*sqrt(eta);
+	double d_metro = 2*sqrt(eta);//optimized parameter for the metropolis step
 	
 	double obs0;
 	double obs1;
 	double obs2;
 	double obsk1;
 	double obsk2;
+	double k = 2;//for the correlator <x_i*x_{i+k}>, given pbc ence discrete translation invariance, this is the same for all i
 		
 	geometry();
 	initialize_lattice(iflag);
 	
-	FILE *fp;
-	fp=fopen("hist.txt","w");
+	FILE *fp_data;
+	fp_data=fopen("data.txt","w");//one can save the measurements organized in columns
 
-    
+	//thermalization    
 	for(int i_term = 1; i_term <= nterm; i_term++){
 			update_metropolis(eta,d_metro);
 	}
 	
-	    
+	//measures
 	for(int iter = 1; iter <= nstat; iter++){
-	
+		//decorrelation
 		for(int idec = 1; idec<= idecorrel; idec++){
 			update_metropolis(eta,d_metro);
 		}
 
-		measures(&obs0,&obs1,&obs2,&obsk1,&obsk2,0);
-		fprintf(fp,"%lf\n",obs0);
+		measures(&obs0,&obs1,&obs2,&obsk1,&obsk2,k);
+		fprintf(fp_data,"%lf\t%lf\t%lf\t%lf\t%lf\n",obs0,obs1,obs2,obsk1,obsk2);
 	}
-	
-	
-
 	
 	return 0;
 }
@@ -72,7 +71,7 @@ void geometry(){
         npp[i] = i+1;
         nmm[i] = i-1;
     }
-
+	//pbc
     npp[nlatt-1] = 0;
     nmm[0] = nlatt-1;
 
@@ -85,6 +84,8 @@ void initialize_lattice(int iflag){
 	double x;
 	extern double field[nlatt];
 	
+	//case 1 is 'warm' start with random values given to the sites
+	//case 2 is 'cold' start with sites initialli frozen in the arbitrary value of 10.0
 	switch(iflag){
 	
 		case 1:{
@@ -115,7 +116,7 @@ void initialize_lattice(int iflag){
 	return;
 }
 
-
+//metropolis step for the harmonic oscillator
 void update_metropolis(double eta, double d_metro){
 
 	extern double field[nlatt];
@@ -153,11 +154,13 @@ void update_metropolis(double eta, double d_metro){
 
 void measures(double *obs0, double *obs1,double *obs2,double *obsk1, double *obsk2,int k){
 
-/*obsk1 è il correlatore a 2 punti <X_i X_i+k>
-obsk2 è il correlatore a due punti con le grandezze al quadrato <(X_i**2 X_i+k**2>
-per i correlatori connessi va sottratto a obsk1 e obsk2 rispettivamente 
-<x>**2, nullo se l' energia è pari e <x**2>**2, <x**2> si calcola già con obs1,
-quindi resta solo da ELEVARALA AL QUADRATO DOPO AVER FATTO LA MEDIA*/
+/*
+obs0 = <x>
+obs1 = <x**2>
+obs2 = <x_i*x_{i-1}> correlator, i is not important given the pbc ence discrete translation invariance
+obsk1 = <x_i*x{i+k}>
+obsk2 = <[(x_i)**2]*[(x_{i+k})**2]>, the correlator with squared inputs
+*/
 	
 	extern double field[nlatt];
     extern int npp[nlatt];
@@ -183,12 +186,3 @@ quindi resta solo da ELEVARALA AL QUADRATO DOPO AVER FATTO LA MEDIA*/
 	
 	return;
 }
-
-
-
-
-
-
-
-
-
