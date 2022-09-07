@@ -1,0 +1,464 @@
+\documentclass{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{mathtools}
+\usepackage{physics}
+\usepackage{pgfplots}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{hyperref}
+
+\title{Relazione Modulo 3 Metodi Numerici}
+\author{Marco Parrinello&Niccolò Francesco Tiezzi}
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+Nel presente lavoro è stato studiato numericamente il sistema oscillatore armonico quantistico in formalismo di Path Integral tramite algoritmo Markov-Chain Monte Carlo. 
+
+Sono stati estrapolati i primi due gap energetici, rappresentato il modulo quadro della funzione d' onda normalizzata e studiato l' andamento termico dell' energia interna.
+
+Successivamente è stata introdotta una perturbazione anarmonica $\lambda x^4$, studiato il sistema complessivo e confrontato con la teoria delle perturbazioni, in particolare sottolineando come questa ovviamente fallisca quando l' accoppiamento quartico non è 'piccolo' rispetto alla scala di energia del problema i.e. $\displaystyle \frac{\hbar \lambda}{m^2\omega^3} \ll 1$
+\end{abstract}
+\maketitle
+
+\section{Introduzione}
+
+Si vuole descrivere una particella di massa m sottoposta a potenziale quadratico che produca una frequenza caratteristica $\omega$. A partire dall' hamiltoniana
+\begin{equation}
+\hat{H} = \frac{\hat{p}^2}{2m} + \frac{1}{2}m\omega^2\hat{x}^2
+\end{equation}
+
+diagonalizzandola si arriva allo spettro
+
+\begin{equation}
+\displaystyle E_n = \hbar\omega\Big(n+\frac{1}{2}\Big) 
+\end{equation}
+
+che fornisce la funzione di partizione 
+
+\begin{equation}
+Z = \displaystyle \sum_n e^{-\beta E_n} = \frac{1}{\sinh(\frac{\beta\hbar\omega}{2})} \hspace{1cm} \beta = \frac{1}{kT}
+\end{equation}
+
+Nel formalismo del Path Integral si definisce la grandezza definita \textit{propagatore} (i.e. l' ampiezza perchè la particella passi da $x_1$ a $x_2$ in un tempo t)
+
+\begin{equation}
+    \langle x_1 | \displaystyle e^{-\frac{it}{\hbar}\hat{H}}|x_2\rangle = \displaystyle \mathcal{N}\int_{x_1(0)}^{x_2(t)} \mathcal{D}[x(t)] \exp\Bigg(\frac{i}{\hbar}S[x,\dot{x},t]\Bigg)
+\end{equation}
+
+con $\mathcal{N}$ costante di normalizzazione (che nel caso dell' oscillatore armonico è calcolabile) e $S[x,\dot{x},t] =\displaystyle \int_0^t dt' \mathcal{L}(x(t'),\dot{x}(t'),t)$ azione classica del problema, che nel caso dell' oscillatore armonico si scrive 
+
+\begin{equation}
+S[x,\dot{x}] = \displaystyle \int_0^t dt'\hspace{0.2cm} \frac{1}{2}m\Big(\frac{dx}{dt'}\Big)^2 - \frac{1}{2}m\omega^2x^2(t')
+\label{azione}
+\end{equation}
+
+Essendo interessati alla termodinamica del sistema, quindi alla traccia 
+
+\begin{equation}
+Z = tr\Big[e^{-\beta\hat{H}}\Big]
+\end{equation}
+
+il Path Integral viene definito su traiettorie periodiche estese sull' intervallo di "tempo euclideo" $\beta\hbar$ 
+
+\begin{equation}
+\displaystyle Z = \mathcal{N} \int_{x(\beta\hbar)=x(0)} \mathcal{D}x(\tau)\exp\Big(-\frac{S_{E}}{\hbar}\Big)
+\end{equation}
+
+con $S_{E}$ "azione euclidea" ottenuta da (\ref{azione}) con $t\rightarrow-i\tau$
+
+\section{Discretizzazione}
+Per studiare numericamente il sistema lo si discretizza passando a unità adimensionali $y = \frac{x}{l}$, $l = \sqrt{\frac{\hbar}{m\omega}}$, si considera l' evoluzione nel tempo euclideo discretizzato $\beta\hbar = aN$, su un reticolo di passo $a$ con $N$ siti.
+
+Ponendo poi 
+
+$$\int_0^{\beta\hbar} d\tau \rightarrow \sum_j^{N-1}a \hspace{1cm} 
+\frac{dy}{d\tau}\rightarrow \frac{y_{j+1}-y_j}{a}$$
+
+si arriva all' azione discretizzata
+
+\begin{equation}
+\frac{S_D}{\hbar} = \displaystyle\sum_j^{N-1} \Bigg[y^2_j\Big(\frac{\eta}{2}+\frac{1}{\eta}\Big)
+-\frac{1}{\eta}y_{j+1}y_j\Bigg] \hspace{1cm} \eta = a\omega 
+\end{equation}
+
+$\eta$ parametro adimensionale che indica la spaziatura del tempo euclideo discretizzato in relazione alla scala temporale caratteristica del problema $\displaystyle\frac{1}{\omega}$
+
+\newpage
+\section{Simulazioni numeriche}
+
+Le simulazioni sono state svolte con (se non specificato diversamente nel testo) $\approx 10^5$ campionamenti (in particolare 131072=$2^{17}$ per poter stimare l' errore sulle osservabili con algoritmo bootstrap con blocchi di dati di potenze di 2).
+
+Fra una misura e l' altra il reticolo è stato decorrelato con un numero di aggiornamenti pari alla dimensione del reticolo svolti sequenzialmente lungo la catena. 
+
+Prima di ogni misura il reticolo è stato aggiornato $10^3$ volte per essere sicuri che la catena di markov fosse "termalizzata" anche dopo eventuale partenza "a freddo", con ogni sito fissato ad un valore.
+
+Il parametro $\delta$ dell' algoritmo metropolis  è stato posto $\delta=2\sqrt{\eta}$ per avere un' accettanza $\approx 0.5$
+\subsection{Energia interna}
+
+Da $U = -\frac{\partial}{\partial\beta}\log Z$ si può calcolare l' energia interna, tenendo presente che nel modello discretizzato $\frac{\partial}{\partial\beta}\propto \frac{\partial}{\partial\eta}$ e che la costante di normalizzazione del path integral va come $\eta^{N/2}$ si ha
+
+\begin{equation}
+    \frac{U_r}{\hbar\omega} = \frac{1}{2\eta} + \frac{1}{2}\Big(\langle y^2\rangle - \langle \Delta y^2 \rangle\Big)
+\end{equation}
+
+Questa quantità è stata studiata numericamente estrapolando al continuo i punti "sperimentali" secondo un modello di correzioni quadratiche $U(\eta) = U^{*}+a\eta^2$ per varie temperature ed è stato fatto un fit con modello 
+
+\begin{equation}
+    U(T) = E_0 + \frac{1}{e^{1/T}-1}
+    \label{eneintharm}
+\end{equation}
+
+con risultato 
+
+$$E_0 = 0.49(2) \hspace{0.5cm} \chi^2_{rid}=1.8$$
+
+\'E stato inoltre stimato il coefficiente angolare dell' andamento ad alta temperatura fittando i dati a T$\geq 1$ con modello lineare con risultato 
+
+$$m = 0.998(2)\hspace{1cm}\chi^2_{rid}=0.8$$
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=0.8]{eneintharm.png}
+    \caption{Fit con modello (\ref{eneintharm})}
+    \label{fig:eneintharm}
+\end{figure}
+\newpage
+\subsection{Gap fra i livelli}
+
+Per l' oscillatore armonico vale esattamente 
+
+\begin{equation}
+C_1(k) = \langle y_jy_{j+k}\rangle - \langle y\rangle^2\propto e^{-\Delta E_1\eta k}
+\label{c1k}
+\end{equation}
+
+\begin{equation}
+    C_2(k) = \langle y_j^2y_{j+k}^2\rangle - \langle y^2\rangle^2\propto e^{-\Delta E_2\eta k}
+    \label{c2k}
+\end{equation}
+
+con j qualsiasi (dall' invarianza per traslazioni). Sono stata stimata la quantità $C_1(k)$ e $C_2(k)$ per $\eta = 0.2,\ 0.4,\ 0.5,\ 0.8$ ed eseguito un fit per stimare $\Delta E_1$,$\Delta E_2$ nei quattro casi e successivamente estrapolato il valore al continuo considerando sempre un modello quadratico
+
+\begin{figure}[h]
+     \centering
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{estrapolazionedE1.png}
+         \caption{Estrapolazione $\Delta E_1$}
+         \label{fig:de1}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{estrapolazionedE2.png}
+         \caption{Estrapolazione $\Delta E_2$}
+         \label{fig:de2}
+     \end{subfigure}
+     \hfill
+        \caption{Fit con modello $\Delta E(\eta) = \Delta E^{*}+a\eta^2$}
+        \label{fig:estrap harm}
+\end{figure}
+
+I gap energetici risultanti sono riportati in tabella (\ref{deltaEestrap})
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c}
+
+$\Delta E_1$ = 1.002(4) $\chi^2_{rid}=1.9$                                   \\
+
+$\Delta E_2$ = 1.99(1) $\chi^2_{rid}=0.3$ \\ 
+\hline
+\end{tabular}
+\caption{Gap energetici estrapolati}
+\label{deltaEestrap}
+\end{table}
+
+\subsection{Modulo quadro della funzione d' onda dello stato fondamentale}
+
+Per ottenere il modulo quadro della funzione d' onda è stato campionato il valore $y_0$ (quasiasi valore va bene per invarianza per traslazioni) a T = 0.05 $10^6$ volte e fatto un istogramma normalizzato visibile in figura (\ref{fig:psi0harm})
+
+All' istogramma è stato sovrapposto il modulo quadro della funzione d' onda calcolata analiticamente per verificarne la compatibilità
+
+\begin{equation}
+    |\psi_0(y)|^2 = \frac{1}{\sqrt{\pi}}e^{-y^2}
+    \label{psi0harm}
+\end{equation}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.7]{psi0squared_harm.png}
+    \caption{Frequenze dei $10^6$ valori di $y_0$ campionati con sovrapposta funzione (\ref{psi0harm})}
+    \label{fig:psi0harm}
+\end{figure}
+
+\subsection{Limite al continuo come punto critico}
+
+Considerando i correlatori in eq (\ref{c1k}) e (\ref{c2k}), possono essere riscritti definendo le lunghezze di correlazione per i 2 gap 
+
+\begin{equation}
+\begin{split}
+    \xi _1 = \frac{1}{\eta \Delta E_1}\\
+    \xi _2 = \frac{1}{\eta \Delta E_2}
+    \label{csi}
+    \end{split}
+\end{equation}
+
+come $C_1(k) = e^{-k/\xi_1}$, $C_2(k) = e^{-k/\xi_2}$. 
+
+Si ha quindi che nel limite del continuo le lunghezze di correlazione divergono come $\eta^{-\nu}$, $\nu$ = 1, divergenza analoga a quella osservata per transizioni di fase del second' ordine.
+
+Sono prima stati effettuati dei fit con modello $f(x) = ae^{-k/\xi}$ per stimare $\xi_{1,2}$ in funzione di $\eta$ e poi stimato $\nu$ (figura(\ref{fig:csi12})) con modello 
+
+\begin{equation}
+    f(x) = ax^{-\nu}
+    \label{espcrit}
+\end{equation}
+
+I risultati sono riportati in tabella (\ref{tabindice})
+
+\begin{figure}[h]
+     \centering
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{csi1.png}
+         \caption{$\xi_1(\eta)$}
+         \label{fig:csi1fig}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{csi2.png}
+         \caption{$\xi_2(\eta)$}
+         \label{fig:csi2fig}
+     \end{subfigure}
+     \hfill
+        \caption{Fit con modello (\ref{espcrit}) per la stima di $\nu$}
+        \label{fig:csi12}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccl}
+      & a       & $\nu$   & $\chi^2_{rid}$ \\ \hline\hline
+Gap 1 & 1.02(1) & 0.99(2) & 0.8            \\
+Gap 2 & 0.50(2) & 1.02(2) & 1.5           
+\end{tabular}
+\caption{Risultati per la stima dell' indice critico}
+\label{tabindice}
+\end{table}
+
+\newpage
+
+\section{Termine quartico}
+
+Considerando ora il sistema
+
+\begin{equation}
+    \hat{H} = \frac{\hat{p}^2}{2m} + \frac{1}{2}m\omega^2\hat{x}^2 + \lambda \hat{x}^4
+\end{equation}
+
+si arriva ad un' azione discretizzata
+
+\begin{equation}
+\frac{S_D}{\hbar}=\displaystyle\sum_j^{N-1} \Bigg[y^2_j\Big(\frac{\eta}{2}+\frac{1}{\eta}\Big)
+-\frac{1}{\eta}y_{j+1}y_j +\eta\alpha y_j^4\Bigg] \hspace{1cm} \alpha = \frac{\hbar\lambda}{m^2\omega^3}
+\end{equation}
+
+anche per questa parte gli iperparametri (numero di misure, $\delta$ del metropolis etc) sono rimasti invariati
+
+\subsection{Energia interna e stato fondamentale}
+
+In questo caso si ha una correzione
+
+\begin{equation}
+\frac{U_r}{\hbar\omega} = \frac{1}{2\eta} + \frac{1}{2}\Big(\langle y^2\rangle - \langle \Delta y^2 \rangle\Big) + \alpha\langle y^4\rangle
+\end{equation}
+
+Anche in questo caso sono stati estrapolati al continuo i valori dell' energia interna per diverse temperature e per 3 diversi valori dell' accoppiamento quartico $\alpha$ = 0.1, 0.5, 1.0, i risultati sono visibili in figura (\ref{fig:andamentotermico}).
+
+Per stimare lo stato fondamentale è stato eseguito un fit con modello costante sui dati a temperatura più bassa (T $\leq$ 0.5), i risultati sono riportati in tabella (\ref{E0anharm})
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=0.6]{andamentoterm_harmvsanharm.png}
+    \caption{U(T) per accoppiamenti diversi, le linee continue sono solo delle interpolazioni fra i dati}
+    \label{fig:andamentotermico}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lclcl}
+$\alpha$ & $E_0$    & $\chi^2_{rid}$ & $m$ & $\chi^2_{rid}$\\ \hline
+\hline
+0.1      & 0.56(1) & 3.4 & 0.753(2) & 1.2         \\
+0.5      & 0.69(1) & 2.1 & 0.749(2)& 0.6                \\
+1.0      & 0.79(1) & 1.9 & 0.747(2)&1.4               
+\end{tabular}
+\caption{Energia dello stato fondamentale e coefficiente angolare energia interna per accoppiamenti diversi}
+\label{E0anharm}
+\end{table}
+
+Sono inoltre stati eseguiti dei fit con modello lineare sui dati a temperatura più alta (T$\geq$1) per stimare il coefficiente angolare dell' energia interna ad alta temperatura, aspettandosi un coefficiente unitario per l' oscillatore armonico e pari a $\frac{3}{4}$ per il modello quartico.
+
+I risultati sono riportati in tabella (\ref{E0anharm}).
+
+
+
+\subsection{Gap energetici e teoria delle perturbazioni}
+
+Anche in questo caso dal correlatore $C_1(k)=\langle y_jy_{j+k}\rangle - \langle y\rangle^2$ è possibile stimare il gap $E_1-E_0$. Per i 3 diversi valori di $\alpha$ sono stati estrapolati al continuo i gap, riportati in tabella (\ref{deltae1anharm}), eseguendo sempre un fit con correzioni quadratiche (figura (\ref{fig:estrapanharmde1}))
+
+\begin{figure}[h]
+     \centering
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{estrapolazionedE1alpha01.png}
+         \caption{$\alpha$ = 0.1}
+         \label{fig:de1alpha01}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{estrapolazionedE1alpha05.png}
+         \caption{$\alpha$ = 0.5}
+         \label{fig:de1alpha05}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{estrapolazionedE1alpha1.png}
+         \caption{$\alpha$ = 1.0}
+         \label{fig:de1alpha1}
+     \end{subfigure}
+     \hfill
+        \caption{Estrapolazioni $\Delta E_1$ con accoppiamenti diversi}
+        \label{fig:estrapanharmde1}
+\end{figure}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+$\alpha$ & $\Delta E_1$    & $\chi^2_{rid}$\\ \hline
+\hline
+0.1      & 1.21(1) & 0.8      \\
+0.5      & 1.63(3) & 0.3     \\
+1.0      & 1.93(3) & 0.6                
+\end{tabular}
+\caption{Gap fra fondamentale e primo eccitato al variare dell' accoppiamento quartico}
+\label{deltae1anharm}
+\end{table}
+
+Questi valori possono essere confrontati con i risultati forniti dalla teoria delle perturbazioni, di seguito riportato fino al terzo ordine:
+
+\begin{equation}
+\begin{split}
+\frac{E_n}{\hbar\omega}  &= n + \frac{1}{2} + \alpha\Big(\frac{3}{4}+\frac{3n}{2}+\frac{3n^2}{2}\Big)\\
+&   -\alpha^2\Big(\frac{21}{8}+\frac{59n}{8}+\frac{51n^2}{8}+\frac{17n^3}{8}\Big)\\
+&   +\alpha^3\Big(\frac{333}{16}+\frac{1041n}{16}+\frac{177n^2}{2}+\frac{375n^3}{8}+\frac{375n^4}{16}\Big) + o(\alpha^4)
+\end{split}
+\end{equation}
+
+\'E noto che la serie perturbativa è divergente, ci si aspetta quindi dei risultati compatibili solo per il valore di $\alpha$ più piccolo, con un errore che cresce molto velocemente con $\alpha$.
+
+In tabella sono riportati i confronti fra estrapolazione numerica e calcolo perturbativo
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+$\alpha$ & $E_{0,pert}$ & $E_{0,num}$ & $\Delta E_{1,pert}$ & $\Delta E_{1,num}$ \\ \hline\hline
+0.1      & 0.575        &    0.56(1)         & 1.343               &         1.21(1)           \\ 
+0.5      & 2.875        &   0.69(1)          & 25.875              &    1.63(3)                \\ 
+1.0      & 19.25        &   0.79(1)          & 209                 &          1.93(3)         
+\end{tabular}
+\caption{Confronto fra risultati numerici e teoria delle perturbazioni}
+\label{pertvsnum}
+\end{table}
+\newpage
+\subsection{Doppio regime per piccoli $\alpha$}
+Per un valore piccolo della costante di accoppiamento (in questo caso $\alpha$ = 0.01) il sistema si comporta come un oscillatore armonico a bassa temperatura, mentre ad alta temperatura prevale il comportamento quartico.
+
+Questo è stato verificato stimando l' energia interna a varie temperature e fittando i dati di alte e basse temperature ($T\lessgtr 15$) con modelli lineari, aspettandosi un coefficiente angolare pari rispettivamente a $\frac{3}{4}$ per il regime quartico e 1 per il regime quadratico.
+
+\begin{figure}[h]
+     \centering
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{doppioreg_datotolto.png}
+         \caption{Fit U(T) senza considerare il dato a T=15 (in blu)}
+         \label{fig:doppioregnodato}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{doppioreg_offset.png}
+         \caption{Fit U(T) con offset}
+         \label{fig:doppioregoffset}
+     \end{subfigure}
+     \hfill
+        \caption{Fit per la stima della pendenza di U(T)}
+        \label{fig:csi12}
+\end{figure}
+
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+                  & m       & $\chi^2_{rid}$ \\ \hline\hline
+$T<15$    & 0.99(1) & 0.2            \\
+$T> 15$ & 0.74(2) & 0.7          \\
+$T \geq 15$ & 0.76(2) & 1.3
+\end{tabular}
+\caption{Risultati studio doppio regime, la seconda riga è relativa al fit escludendo il dato a T=15, la terza è relativa al fit con offset}
+\label{risdoppioreg}
+\end{table}
+
+Dato che la grandezza di interesse è la capacità termica (derivata dell' energia), sono state fatte due prove diverse:
+
+una escludendo il dato a T=15, nel regime di transizione fra oscillatore armonico e anarmonico (figura (\ref{fig:doppioregnodato})), un' altra considerando tutti i dati ma usando un modello lineare con un offset (figura (\ref{fig:doppioregoffset})), dato che in ogni caso quello che interessa sono i coefficienti angolari.
+
+Come si vede in tabella (\ref{risdoppioreg}), i due fit hanno dato risultati compatibili.
+
+\newpage
+\subsection{Modulo quadro funzione d' onda e confronto col l' oscillatore armonico}
+
+\'E stato nuovamente campionato il valore di $y_0$ $10^6$ volte per i tre accoppiamenti diversi a T=0.05 e costruiti i rispettivi istogrammi normalizzati. 
+
+Sugli istogrammi è stata sovrapposta la funzione (\ref{psi0harm}) per confronto, si apprezza la maggiore concentrazione intorno allo 0 dovuta al termine quartico che rende la distribuzione più piccata
+
+\begin{figure}[h]
+     \centering
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{psi0squared_anharm_alpha01.png}
+         \caption{$\alpha$ = 0.1}
+         \label{fig:psi0alpha01}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{psi0squared_anharm_alpha05.png}
+         \caption{$\alpha$ = 0.5}
+         \label{fig:psi0alpha05}
+     \end{subfigure}
+     \hfill
+     \begin{subfigure}[b]{0.48\textwidth}
+         \centering
+         \includegraphics[width=\textwidth]{psi0squared_anharm_alpha1.png}
+         \caption{$\alpha$ = 1.0}
+         \label{fig:psi0alpha1}
+     \end{subfigure}
+     \hfill
+        \caption{$|\psi_o|^2$ per accoppiamenti diversi}
+        \label{fig:psi0anarm}
+\end{figure}
+
+\end{document}
