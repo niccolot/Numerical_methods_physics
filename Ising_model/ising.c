@@ -257,7 +257,6 @@ void update_metropolis(double beta, double extfield){
         if(z<p_rat){
             field[i][j] = -phi;
         } 
-
     }
     return;
 }
