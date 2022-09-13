@@ -1,4 +1,4 @@
-# Numerical_mehods
+# Numerical_methods
 
 This repo contains little projects concerning Montecarlo simulations of physical system from the statistical point of view and some sparse example/utility programs like bootstrap.c for calculating errors in datapoint with bootstrap algorithm
 
